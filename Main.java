@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.function.Supplier;
+import java.util.function.Consumer;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException {
@@ -19,39 +21,44 @@ public class Main {
         Fahrzeug fahrzeug = new Fahrzeug(kennzeichen);
 
 
-        Ticket ticket = parkhaus.ticketErstellen(fahrzeug);
-        if (ticket != null) {
-            System.out.println("Möchten Sie ein Ticket ziehen? (ziehen/aufwiedersehen)");
-            String antwort = scanner.nextLine();
-
-            if (antwort.equalsIgnoreCase("ziehen")) {
-                System.out.println("Ticket wurde erstellt.");
-                Thread.sleep(2000);
-                schrankenListe.get(0).oeffnen();
-                System.out.println("es wird ins Parkhaus eingefahren...");
-                Thread.sleep(1000);
-
-                System.out.println("Möchten Sie das Parkhaus verlassen? (ja/nein)");
-                String verlassen = scanner.nextLine();
-
-                if (verlassen.equalsIgnoreCase("ja")) {
-                    System.out.println("Bitte zahlen Sie die Gebühr: 3 CHF");
-                    System.out.println("Zahlen? (zahlen)");
-                    String zahlen = scanner.nextLine();
-                    if (zahlen.equalsIgnoreCase("zahlen")) {
-                        kassenListe.get(0).bezahlung();
-                        Thread.sleep(1000);
-                        schrankenListe.get(1).oeffnen();
-                        System.out.println("Sie fahren aus dem Parkhaus...");
-                        Thread.sleep(1000);
-                        System.out.println("Auf Wiedersehen!");
-                    }
+        Supplier<Boolean> ticketZiehen = () -> {
+            try {
+                Ticket ticket = parkhaus.ticketErstellen(fahrzeug);
+                if (ticket != null) {
+                    System.out.println("Ticket wurde erstellt.");
+                    return true;
                 }
-            } else {
-                System.out.println("Auf Wiedersehen.");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return false;
+        };
+
+
+
+        Consumer<Ticket> ticketBezahlen = (ticket) -> {
+            System.out.println("Bitte Gebühr zahlen: 3 CHF");
+            System.out.println("Zahlen? (zahlen)");
+            String zahlen = scanner.nextLine();
+            if (zahlen.equalsIgnoreCase("zahlen")) {
+                kassenListe.get(0).bezahlung();
+                schrankenListe.get(1).oeffnen();
+                System.out.println("Sie fahren aus dem Parkhaus...");
+            }
+        };
+
+
+
+
+        if (ticketZiehen.get()) {
+            Ticket dummyTicket = new Ticket(2);
+            System.out.println("Möchten Sie das Parkhaus verlassen? (ja/nein)");
+            String verlassen = scanner.nextLine();
+            if (verlassen.equalsIgnoreCase("ja")) {
+                ticketBezahlen.accept(dummyTicket);
             }
         } else {
-            System.out.println("Kein freier Platz. Auf Wiedersehen.");
+            System.out.println("Kein Ticket, auf Wiedersehen!");
         }
 
         scanner.close();
